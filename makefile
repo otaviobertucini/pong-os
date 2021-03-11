@@ -1,7 +1,7 @@
 all: pong
 
 pong: pong.o
-	gcc -o pong pingpong-scheduler.o ppos.o
+	gcc -o pong pingpong-scheduler.o ppos.o queue.o
 
 pong.o: ppos.o
 	 gcc -c pingpong-scheduler.c

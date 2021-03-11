@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ppos_data.h"
+#include "queue.h"
 
 // Interface do núcleo para as aplicações
 #ifndef __PPOS__
