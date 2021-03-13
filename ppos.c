@@ -37,6 +37,6 @@ int task_create (task_t *task,
     printf("TAMANHO DA FILA: %d", queue_size(&queue));
 
     // Calls the body of the function passing it's argument
-    start_func(arg);
+    // start_func(arg);
 
 }	
