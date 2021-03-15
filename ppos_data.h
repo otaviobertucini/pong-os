@@ -27,6 +27,9 @@ typedef struct task_t
    // ... (outros campos deve ser adicionados APOS esse comentario)
    int prio;
 
+   // Prioridade que será levada em consideração pelo escalonador
+   int dinamic_prio;
+
 } task_t ;
 
 // estrutura que define um semáforo
