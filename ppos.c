@@ -91,18 +91,7 @@ void task_setprio (task_t *task, int prio) {
     if(prio > 20) task->prio = 20;
     task->prio = prio;
     task->dinamic_prio = prio;
-    /*int new_prio = prio;
-    if(new_prio < -20){
-        new_prio = -20;
-    }
-
-    if(new_prio > 20){
-        new_prio = 20;
-    }
-
-    task->prio = new_prio;
-    task->dinamic_prio = new_prio;
-    */
+    
 }
 
 // retorna a prioridade estática de uma tarefa (ou a tarefa atual)
@@ -146,6 +135,8 @@ int task_create (task_t *task,
     task->prio = 0; //prioridade default = 0
     task->dinamic_prio = 0;    
     task->is_dispatcher = 0;
+    task->id = id;
+    id = id + 1;
 
     getcontext (&task->context) ;
 
