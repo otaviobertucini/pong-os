@@ -8,6 +8,6 @@ pong.o: ppos.o
 
 ppos.o: ppos.c
 	gcc -c ppos.c
-     
+
 clean:
 	 rm pingpong-scheduler.o ppos.o pong

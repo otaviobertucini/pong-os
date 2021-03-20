@@ -9,30 +9,40 @@ queue_t* queue;
 // O despachante das tarefas
 task_t dispatcher;
 
+int id = 0;
 
-void task_yield () {
-
-    //verifica o tamanho da fila se>1 chama(swap) o dispatcher
-    //verifica a prioridade e executa a mais priotária
-    // Passa o controle paro o dispatcher
-
-    // Chama o body do dispatcher
-
-}
 
 void dispatcher_body() {
 
-    printf("entrei dispatcher!!!!!!\n") ;
+    task_t* next = NULL;
+    while(queue_size(queue) > 1){
 
-    // Vê se tem tarefas a serem executadas
+        next = scheduler();
+        if(next != NULL){
+            task_switch(next);
+        }
 
-    // Se tem
+    }
 
-    // Chama o scheduler
-
-    // Acho que faz via task_switch
+    return;
 
 }
+
+
+void task_yield () {
+
+    // Passa o controle paro o dispatcher
+    // Chama o body do dispatcher
+
+    if(current_task == NULL){
+        current_task = &dispatcher;
+        dispatcher_body();
+    }
+    task_switch(&dispatcher);
+
+}
+
+
 
 void ppos_init (){
 
@@ -40,30 +50,48 @@ void ppos_init (){
 
     queue = NULL;
 
-    // // Cria contexto de main
-
     // Cria a tarefa de dispatcher
     task_create (&dispatcher, dispatcher_body, "Dispatcher") ;
     dispatcher.is_dispatcher = 1;
     task_setprio(&dispatcher, -20);
-    current_task = &dispatcher;
+    current_task = NULL;
 
 } 
 
 task_t* scheduler() {
 
-    // Ordena as tarefas
+    task_t* aux_ini = &dispatcher;
+    task_t* next = aux_ini->next;
+    task_t* aux_current = next->next;
+    
 
-    // Envelhecimento
+    while(aux_current != aux_ini){ 
+        if(aux_current->dinamic_prio < next->dinamic_prio){
+            next = aux_current;    //armazena a maior prioridade
+        }
+        aux_current = aux_current->next; //percorre a fila
+    }
+    
+    aux_current = aux_ini->next; //aponta novamente à primeira tarefa da fila
 
-    // Retorna a primeira da fila && não é dispatcher
+    while(aux_current != aux_ini){      //task aging com 'α = -1'
+        aux_current->dinamic_prio -= 1; //atualiza a prioridade dinâmica de cada tarefa
+        aux_current = aux_current->next;
+    }
+
+    next->dinamic_prio = next->prio; //reinicia a prioridade dinâmica
+    return next;    
 
 }
 
 // define a prioridade estática de uma tarefa (ou a tarefa atual)
 void task_setprio (task_t *task, int prio) {
 
-    int new_prio = prio;
+    if(prio < -20) task->prio = -20;
+    if(prio > 20) task->prio = 20;
+    task->prio = prio;
+    task->dinamic_prio = prio;
+    /*int new_prio = prio;
     if(new_prio < -20){
         new_prio = -20;
     }
@@ -73,7 +101,8 @@ void task_setprio (task_t *task, int prio) {
     }
 
     task->prio = new_prio;
-
+    task->dinamic_prio = new_prio;
+    */
 }
 
 // retorna a prioridade estática de uma tarefa (ou a tarefa atual)
@@ -88,20 +117,33 @@ int task_getprio (task_t *task) {
 }
 
 int task_switch (task_t *task) {
+    
+    if(task==NULL){
+        return -1;
+    }
+    else{
+        /* salva o estado da tarefa atual e troca para a tarefa recebida */
+        task_t* aux = current_task;
+        current_task = task;
+        swapcontext(&aux->context, &current_task->context);
+    }
 
-    // swapcontext()
-
+    return 0; //se deu tudo certo
 }
 
 
-void task_exit (int exitCode) {}
+void task_exit (int exitCode) {
+    
+    queue_remove((queue_t**) &dispatcher, (queue_t*) current_task);
+    task_yield();
+}
 
-int task_create (task_t *task,			
-                 void (*start_func)(void *),	
+int task_create (task_t *task,          
+                 void (*start_func)(void *),    
                  void *arg) 
 {
 
-    task->prio = 0;
+    task->prio = 0; //prioridade default = 0
     task->dinamic_prio = 0;    
     task->is_dispatcher = 0;
 
@@ -124,6 +166,5 @@ int task_create (task_t *task,
     makecontext (&task->context, (void*)(start_func), 1, arg) ;
 
     queue_append(&queue, (queue_t*) task);    
-    printf("TAMANHO DA FILA: %d", queue_size(queue));    
 
-}	
+}
