@@ -32,6 +32,7 @@ typedef struct task_t
 
    // Diz se é dispatcher
    int is_dispatcher;
+   int tickcounter;
  
 } task_t ;
 
