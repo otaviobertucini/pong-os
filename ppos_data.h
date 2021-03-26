@@ -9,6 +9,9 @@
 
 #include <stdio.h>
 #include <ucontext.h>		// biblioteca POSIX de trocas de contexto
+#include <signal.h>
+#include <time.h>
+#include <sys/time.h>
 #include "queue.h"		// biblioteca de filas genéricas
 
 // Estrutura que define um Task Control Block (TCB)
@@ -33,6 +36,11 @@ typedef struct task_t
    // Diz se é dispatcher
    int is_dispatcher;
    int tickcounter;
+   int position;
+
+   int creation_time;
+   int processing_time;
+   int activations;
  
 } task_t ;
 
