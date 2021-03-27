@@ -5,7 +5,7 @@ pong: pong.o
 
 pong.o: ppos.o
 	 gcc -c -Wall pingpong-contab-prio.c
-s
+
 ppos.o: ppos.c
 	gcc -c -Wall ppos.c
 

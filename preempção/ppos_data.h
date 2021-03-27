@@ -9,9 +9,6 @@
 
 #include <stdio.h>
 #include <ucontext.h>		// biblioteca POSIX de trocas de contexto
-#include <signal.h>
-#include <time.h>
-#include <sys/time.h>
 #include "queue.h"		// biblioteca de filas genéricas
 #include <signal.h>
 #include <time.h>
