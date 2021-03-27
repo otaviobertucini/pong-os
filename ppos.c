@@ -29,9 +29,8 @@ void handler_tick(int signum)
     }
     current_task->tickcounter -= 1; // current_task->contador decrementa
     current_task->processing_time += 1;
-    if (current_task->tickcounter <= 0)
+    if (current_task->tickcounter <= 0 && IS_PREEMPTIVE)
     {
-        //dispatcher_body();
         task_switch(&dispatcher);
     }
     return;
@@ -44,13 +43,14 @@ void dispatcher_body()
     while (queue_size((queue_t *)&dispatcher) > 1)
     {
         next = scheduler();
+        current_task->tickcounter = 20;
         if (next != NULL)
         {
-
             task_switch(next);
         }
     }
-
+    if (IS_PREEMPTIVE)
+        printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", current_task->id + 1, systime() - current_task->creation_time, current_task->processing_time, current_task->activations);
     return;
 }
 
@@ -102,73 +102,38 @@ void ppos_init()
 task_t *scheduler()
 {
 
-    if (IS_PREEMPTIVE)
-    {
-
-        task_t *aux_ini = &dispatcher;
-        task_t *next = aux_ini->next;
-        task_t *aux_current = next->next;
-
-        while (aux_current != aux_ini)
-        {
-
-            if (aux_current == &dispatcher)
-            {
-                aux_current = aux_current->next; //percorre a fila
-                continue;
-            }
-
-            if (aux_current->position == 1)
-            {
-                next = aux_current; //armazena a maior prioridade
-                break;
-            }
-            aux_current = aux_current->next; //percorre a fila
-        }
-
-        next->position = queue_size((queue_t *)&dispatcher) - 1;
-
-        aux_current = next->next;
-        aux_ini = next;
-        int counter = 1;
-        while (aux_current != aux_ini)
-        {
-
-            if (aux_current == &dispatcher)
-            {
-
-                aux_current = aux_current->next; //percorre a fila
-                continue;
-            }
-
-            aux_current->position = counter;
-            counter++;
-            aux_current = aux_current->next; //percorre a fila
-        }
-
-        return next;
-    }
-
     task_t *aux_ini = &dispatcher;
     task_t *next = aux_ini->next;
     task_t *aux_current = next->next;
 
+    //Escolha da proxima
     while (aux_current != aux_ini)
     {
 
         if (aux_current == &dispatcher)
             continue;
 
-        if (aux_current->dinamic_prio < next->dinamic_prio)
+        if (aux_current->dinamic_prio <= next->dinamic_prio)
         {
-            next = aux_current; //armazena a maior prioridade
+            if (aux_current->dinamic_prio == next->dinamic_prio)
+            {
+                if (aux_current->position < next->position || (!IS_PREEMPTIVE && aux_current->id < next->id))
+                {
+                    next = aux_current;
+                }
+            }
+            else
+            {
+                next = aux_current; //armazena a maior prioridade
+            }
         }
         aux_current = aux_current->next; //percorre a fila
     }
 
+    // Envelhecimento
     aux_current = aux_ini->next; //aponta novamente à primeira tarefa da fila
 
-    while (aux_current != aux_ini && !IS_PREEMPTIVE)
+    while (aux_current != aux_ini)
     {
         if (aux_current == &dispatcher)
             continue;
@@ -177,6 +142,26 @@ task_t *scheduler()
         aux_current = aux_current->next;
     }
     next->dinamic_prio = next->prio; //reinicia a prioridade dinâmica
+
+    // Ciranda cirandinha
+    next->position = queue_size((queue_t *)&dispatcher) - 1;
+    aux_current = next->next;
+    aux_ini = next;
+    int counter = 1;
+    while (aux_current != aux_ini)
+    {
+
+        if (aux_current == &dispatcher)
+        {
+
+            aux_current = aux_current->next; //percorre a fila
+            continue;
+        }
+
+        aux_current->position = counter;
+        counter++;
+        aux_current = aux_current->next; //percorre a fila
+    }
 
     return next;
 }
@@ -216,10 +201,6 @@ int task_switch(task_t *task)
         /* salva o estado da tarefa atual e troca para a tarefa recebida */
         task_t *aux = current_task;
         current_task = task;
-        if (current_task != &dispatcher)
-        {
-            current_task->tickcounter = 20;
-        }
         current_task->activations += 1;
         swapcontext(&aux->context, &current_task->context);
     }
@@ -229,11 +210,11 @@ int task_switch(task_t *task)
 
 void task_exit(int exitCode)
 {
-    printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", current_task->id, systime() - current_task->creation_time, current_task->processing_time, current_task->activations);
+    if (IS_PREEMPTIVE)
+        printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", current_task->id + 1, systime() - current_task->creation_time, current_task->processing_time, current_task->activations);
     queue_remove((queue_t **)&dispatcher, (queue_t *)current_task);
     task_yield();
     return;
-    //if(IS_PREEMPTIVE) printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", current_task->id, systime() - current_task->creation_time, current_task->processing_time, current_task->activations);
 }
 
 unsigned int systime()

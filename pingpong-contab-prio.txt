@@ -14,5 +14,5 @@ Task 4 exit: execution time 15879 ms, processor time  3832 ms, 192 activations
 Task 3 exit: execution time 18098 ms, processor time  3819 ms, 191 activations
     Pang: fim    em 19209 ms
 Task 2 exit: execution time 19209 ms, processor time  3831 ms, 192 activations
-Task 1 exit: execution time 19209 ms, processor time     0 ms, 964 activations
+Tt: executask 1 exiion time 19209 ms, processor time     0 ms, 964 activations
 main: fim
