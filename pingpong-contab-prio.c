@@ -31,7 +31,7 @@ void Body (void * arg)
 {
    printf ("%s: inicio em %4d ms (prio: %d)\n", (char *) arg,
            systime(), task_getprio(NULL)) ;
-   hardwork (WORKLOAD) ;
+   hardwork (WORKLOAD) ;0
    printf ("%s: fim    em %4d ms\n", (char *) arg, systime()) ;
    task_exit (0) ;
 }

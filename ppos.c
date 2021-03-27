@@ -256,11 +256,11 @@ int task_switch(task_t *task)
 
 void task_exit(int exitCode)
 {
+    printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", current_task->id, systime() - current_task->creation_time, current_task->processing_time, current_task->activations);
     queue_remove((queue_t **)&dispatcher, (queue_t *)current_task);
-    
     task_yield();
-    
-    if(IS_PREEMPTIVE) printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", current_task->id, systime() - current_task->creation_time, current_task->processing_time, current_task->activations);
+    return;
+    //if(IS_PREEMPTIVE) printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", current_task->id, systime() - current_task->creation_time, current_task->processing_time, current_task->activations);
 }
 
 unsigned int systime()
