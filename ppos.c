@@ -1,26 +1,33 @@
 #include "ppos.h" /*FUNCIONANDO PARA PINGPONG-SCHEDULER.C E PINGPONG-PREEMPCAO.C*/
 
-#define IS_PREEMPTIVE 1
+#define IS_PREEMPTIVE 0
 #define IS_CONTAB 0
 
 // A tarefa em execução
 task_t *current_task;
 
-task_t *adding_task;
-
+// Fila que armazenará as tarefas
 queue_t *queue;
 
 // O despachante das tarefas
 task_t dispatcher;
 
+// Structs de tempo e signals
 struct sigaction action;
-
 struct itimerval timer;
 
+// Contador dos ids das tarefas
 int id = 0;
 
+// Contador de ticks do relógio passados
 unsigned int my_clock = 0;
 
+/*
+Função que será chamada a cada 1ms.
+Caso a tarefa atual seja o dispatcher não faz nada.
+Caso não seja e a tarefa já tenha ficado 20ms em execução,
+dá o processador para o dispathcer escolher a próxima tarefa.
+*/
 void handler_tick(int signum)
 {
     my_clock += 1;
@@ -37,6 +44,12 @@ void handler_tick(int signum)
     return;
 }
 
+/*
+Função que será executada quando o dispatcher está em execução.
+Enquanto a fila de tarefas não for vazia, chama o escalodador para 
+escolher qual a próxima tarefa a ser executada. 
+Uma vez escolhida a tarefa, dá 20ms de processador para ela.
+*/
 void dispatcher_body()
 {
 
@@ -55,6 +68,13 @@ void dispatcher_body()
     return;
 }
 
+/*
+Função responsável por abstrair a troca de contextos entre tarefas.
+Caso nenhuma tarefa tenha sido escolhida para ser executada, chama o 
+dispatcher diretamente.
+Caso uma tarefa já esteja executando, apenas troca o contexto para o 
+escalonador.
+*/
 void task_yield()
 {
 
@@ -100,68 +120,74 @@ void ppos_init()
     dispatcher.is_dispatcher = 1;
     task_setprio(&dispatcher, -20);
     current_task = NULL;
-    adding_task = NULL;
 }
 
+/*
+Aqui o escalonador vai passar por todas as tarefas e escolher a que tem
+a maior prioridade. Em caso de empate, vale a que foi criada primeiro. 
+Toda vez que o escalonador for chamado, a tarefa que foi escolhida
+terá sua prioridade dinâmica restaurada para a prioridade original
+ e as outras teram a prioridade dinâmica decrementada em 1.
+*/
 task_t *scheduler()
 {
     task_t *aux_ini = &dispatcher;
     task_t *next = aux_ini->next;
     task_t *aux_current = next->next;
 
-    if (IS_PREEMPTIVE)
+    // if (IS_PREEMPTIVE)
+    // {
+    //     while (aux_current != aux_ini)
+    //     {
+
+    //         if (aux_current == &dispatcher)
+    //         {
+    //             aux_current = aux_current->next;
+    //             continue;
+    //         }
+
+    //         if (aux_current->dinamic_prio <= next->dinamic_prio)
+    //         {
+    //             if (aux_current->dinamic_prio == next->dinamic_prio)
+    //             {
+    //                 if (aux_current->id < next->id)
+    //                 {
+    //                     next = aux_current;
+    //                 }
+    //             }
+    //             else
+    //             {
+    //                 next = aux_current; //armazena a maior prioridade
+    //             }
+    //         }
+    //         aux_current = aux_current->next; //percorre a fila
+    //     }
+    // }
+
+    // else
+    // {
+    while (aux_current != aux_ini)
     {
+        if (aux_current->dinamic_prio < next->dinamic_prio)
+        {
+            next = aux_current; //armazena a maior prioridade
+        }
+        aux_current = aux_current->next; //percorre a fila
+        }
+        // }
+
+        aux_current = aux_ini->next; //aponta novamente à primeira tarefa da fila
+
+        //task aging com 'α = -1'
         while (aux_current != aux_ini)
         {
-
             if (aux_current == &dispatcher)
             {
                 aux_current = aux_current->next;
-                continue;
+                continue; //percorre a fila
             }
-
-            if (aux_current->dinamic_prio <= next->dinamic_prio)
-            {
-                if (aux_current->dinamic_prio == next->dinamic_prio)
-                {
-                    if (aux_current->id < next->id)
-                    {
-                        next = aux_current;
-                    }
-                }
-                else
-                {
-                    next = aux_current; //armazena a maior prioridade
-                }
-            }
-            aux_current = aux_current->next; //percorre a fila
-        }
-    }
-
-    else
-    {
-        while (aux_current != aux_ini)
-        {
-            if (aux_current->dinamic_prio < next->dinamic_prio)
-            {
-                next = aux_current; //armazena a maior prioridade
-            }
-            aux_current = aux_current->next; //percorre a fila
-        }
-    }
-
-    aux_current = aux_ini->next; //aponta novamente à primeira tarefa da fila
-
-    //task aging com 'α = -1'
-    while (aux_current != aux_ini)
-    {
-        if (aux_current == &dispatcher)
-        {
+            aux_current->dinamic_prio -= 1; //atualiza a prioridade dinâmica de cada tarefa
             aux_current = aux_current->next;
-            continue; //percorre a fila
-        }
-        aux_current->dinamic_prio -= 1; //atualiza a prioridade dinâmica de cada tarefa
-        aux_current = aux_current->next;
     }
 
     next->dinamic_prio = next->prio; //reinicia a prioridade dinâmica
@@ -169,6 +195,10 @@ task_t *scheduler()
     return next;
 }
 
+/*
+Função chamada para setar a prioridade das tarefas.
+Caso |prio| > 20 o valor será setado para 20.
+*/
 void task_setprio(task_t *task, int prio)
 {
     if (prio < -20)
@@ -187,6 +217,9 @@ int task_getprio(task_t *task)
     return task->prio;
 }
 
+/*
+Muda o contexto da tarefa atual para a tarefa passa por parâmetro.
+*/
 int task_switch(task_t *task)
 {
     if (task == NULL)
@@ -196,12 +229,17 @@ int task_switch(task_t *task)
         /* salva o estado da tarefa atual e troca para a tarefa recebida */
         task_t *aux = current_task;
         current_task = task;
+        // incrementa o número de vezes que foi dada ao processador
         current_task->activations += 1;
         swapcontext(&aux->context, &current_task->context);
     }
     return 0; //se deu tudo certo
 }
 
+/*
+Função chamada no final de cada tarefa.
+Apenas remove ela da fila de tarefas e dá a execução ao dispatcher.
+*/
 void task_exit(int exitCode)
 {
     if (IS_CONTAB)
@@ -212,17 +250,20 @@ void task_exit(int exitCode)
     return;
 }
 
+// Retorna o valor do contador de ticks
 unsigned int systime()
 {
     return my_clock;
 }
 
+/*
+Função chamada para criar tarefas.
+Seta todas as propriedades com valores padrão e adiciona na fila.
+*/
 int task_create(task_t *task,
                 void (*start_func)(void *),
                 void *arg)
 {
-
-    adding_task = task;
     task->prio = 0; //prioridade default = 0
     task->dinamic_prio = 0;
     task->is_dispatcher = 0;
