@@ -1,13 +1,25 @@
-all: pong
+all: contab prio preemp
 
-pong: pong.o
-	gcc -o pong pingpong-preempcao.o ppos.o queue.o
+contab: contab.o
+	gcc -o contab pingpong-contab-prio.o ppos.o queue.o
 
-pong.o: ppos.o
+contab.o: ppos.o
+	gcc -c -Wall pingpong-contab-prio.c
+
+prio: prio.o
+	gcc -o prio pingpong-scheduler.o ppos.o queue.o
+
+prio.o: ppos.o
+	gcc -c -Wall pingpong-scheduler.c
+	
+preemp: preemp.o
+	gcc -o preemp pingpong-preempcao.o ppos.o queue.o
+
+preemp.o: ppos.o
 	 gcc -c -Wall pingpong-preempcao.c
 
 ppos.o: ppos.c
 	gcc -c -Wall ppos.c
 
 clean:
-	 rm pingpong-preempcao.o ppos.o pong
+	 rm pingpong-scheduler.o pingpong-preempcao.o pingpong-contab-prio.o ppos.o 
