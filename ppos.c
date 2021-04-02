@@ -1,7 +1,7 @@
 #include "ppos.h" /*FUNCIONANDO PARA PINGPONG-SCHEDULER.C E PINGPONG-PREEMPCAO.C*/
 
-#define IS_PREEMPTIVE 0
-#define IS_CONTAB 0
+#define IS_PREEMPTIVE 1
+#define IS_CONTAB 1
 
 // A tarefa em execução
 task_t *current_task;

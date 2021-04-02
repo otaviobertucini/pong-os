@@ -18,8 +18,8 @@ preemp: preemp.o
 preemp.o: ppos.o
 	 gcc -c -Wall pingpong-preempcao.c
 
-ppos.o: ppos.c
-	gcc -c -Wall ppos.c
+ppos.o: ppos-core-scheduler.c
+	gcc -c -Wall ppos-core-scheduler.c
 
 clean:
 	 rm pingpong-scheduler.o pingpong-preempcao.o pingpong-contab-prio.o ppos.o 
