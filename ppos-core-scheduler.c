@@ -2,27 +2,32 @@
 #include "ppos-core-globals.h"
 #include "ppos_data.h"
 
-#define IS_PREEMPTIVE 0
 #define IS_CONTAB 0
 
 // A tarefa em execução
-task_t *current_task;
+task_t *taskExec;
 
 // Fila que armazenará as tarefas
-queue_t *queue;
+task_t *readyQueue;
 
 // O despachante das tarefas
-task_t dispatcher;
+task_t taskDisp;
 
 // Structs de tempo e signals
 struct sigaction action;
 struct itimerval timer;
 
 // Contador dos ids das tarefas
-int id = 0;
+long nextid;
 
 // Contador de ticks do relógio passados
-unsigned int my_clock = 0;
+unsigned int systemTime;
+
+unsigned char preemption = 0;
+
+// Structs de tempo e signals
+struct sigaction action;
+struct itimerval timer;
 
 /*
 Função que será chamada a cada 1ms.
@@ -32,16 +37,16 @@ dá o processador para o dispathcer escolher a próxima tarefa.
 */
 void handler_tick(int signum)
 {
-    my_clock += 1;
-    if (current_task == NULL || current_task->is_dispatcher)
+    systemTime += 1;
+    if (taskExec == NULL || taskExec->is_dispatcher)
     {           // ver se é dispatcher via flag
         return; // se for retorna
     }
-    current_task->tickcounter -= 1; // current_task->contador decrementa
-    current_task->processing_time += 1;
-    if (current_task->tickcounter <= 0 && IS_PREEMPTIVE)
+    taskExec->tickcounter -= 1; // taskExec->contador decrementa
+    taskExec->processing_time += 1;
+    if (taskExec->tickcounter <= 0 && preemption)
     {
-        task_switch(&dispatcher);
+        task_switch(&taskDisp);
     }
     return;
 }
@@ -56,7 +61,7 @@ void dispatcher_body()
 {
 
     task_t *next = NULL;
-    while (queue_size(queue) > 1)
+    while (queue_size((queue_t *)readyQueue) > 1)
     {
         next = scheduler();
         next->tickcounter = 20;
@@ -66,7 +71,9 @@ void dispatcher_body()
         }
     }
     if (IS_CONTAB)
-        printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", current_task->id + 1, systime() - current_task->creation_time, current_task->processing_time, current_task->activations);
+    {
+        printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", taskExec->id + 1, systime() - taskExec->creation_time, taskExec->processing_time, taskExec->activations);
+    }
     return;
 }
 
@@ -80,7 +87,7 @@ escalonador.
 void task_yield()
 {
 
-    if (current_task == NULL)
+    if (taskExec == NULL)
     {
         // arma o temporizador ITIM//float mindist = distance(array[pa], array[&pb]);ER_REAL (vide man setitimer)
 
@@ -89,10 +96,10 @@ void task_yield()
             perror("Erro em setitimer: ");
             exit(1);
         }
-        current_task = &dispatcher;
+        taskExec = &taskDisp;
         dispatcher_body();
     }
-    task_switch(&dispatcher);
+    task_switch(&taskDisp);
 }
 
 void ppos_init()
@@ -100,7 +107,10 @@ void ppos_init()
 
     setvbuf(stdout, 0, _IONBF, 0);
 
-    queue = NULL;
+    readyQueue = NULL;
+
+    nextid = 0;
+    systemTime = 0;
 
     action.sa_handler = handler_tick;
     sigemptyset(&action.sa_mask);
@@ -118,10 +128,10 @@ void ppos_init()
     timer.it_interval.tv_sec = 0;     // disparos subsequentes, em segundos
 
     // Cria a tarefa de dispatcher
-    task_create(&dispatcher, dispatcher_body, "Dispatcher");
-    dispatcher.is_dispatcher = 1;
-    task_setprio(&dispatcher, -20);
-    current_task = NULL;
+    task_create(&taskDisp, dispatcher_body, "Dispatcher");
+    taskDisp.is_dispatcher = 1;
+    task_setprio(&taskDisp, -20);
+    taskExec = NULL;
 }
 
 /*
@@ -133,7 +143,7 @@ terá sua prioridade dinâmica restaurada para a prioridade original
 */
 task_t *scheduler()
 {
-    task_t *aux_ini = &dispatcher;
+    task_t *aux_ini = &taskDisp;
     task_t *next = aux_ini->next;
     task_t *aux_current = next->next;
 
@@ -152,7 +162,7 @@ task_t *scheduler()
     //task aging com 'α = -1'
     while (aux_current != aux_ini)
     {
-        if (aux_current == &dispatcher)
+        if (aux_current == &taskDisp)
         {
             aux_current = aux_current->next;
             continue; //percorre a fila
@@ -184,7 +194,7 @@ void task_setprio(task_t *task, int prio)
 int task_getprio(task_t *task)
 {
     if (task == NULL)
-        task = current_task;
+        task = taskExec;
     return task->prio;
 }
 
@@ -198,11 +208,11 @@ int task_switch(task_t *task)
     else
     {
         /* salva o estado da tarefa atual e troca para a tarefa recebida */
-        task_t *aux = current_task;
-        current_task = task;
+        task_t *aux = taskExec;
+        taskExec = task;
         // incrementa o número de vezes que foi dada ao processador
-        current_task->activations += 1;
-        swapcontext(&aux->context, &current_task->context);
+        taskExec->activations += 1;
+        swapcontext(&aux->context, &taskExec->context);
     }
     return 0; //se deu tudo certo
 }
@@ -214,9 +224,10 @@ Apenas remove ela da fila de tarefas e dá a execução ao dispatcher.
 void task_exit(int exitCode)
 {
     if (IS_CONTAB)
-        printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", current_task->id + 1, systime() - current_task->creation_time, current_task->processing_time, current_task->activations);
-    //queue_remove((queue_t **)&dispatcher, (queue_t *)current_task);
-    queue_remove(&queue, (queue_t *)current_task);
+    {
+        printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", taskExec->id + 1, systime() - taskExec->creation_time, taskExec->processing_time, taskExec->activations);
+    }
+    queue_remove((queue_t **)&readyQueue, (queue_t *)taskExec);
     task_yield();
     return;
 }
@@ -224,7 +235,7 @@ void task_exit(int exitCode)
 // Retorna o valor do contador de ticks
 unsigned int systime()
 {
-    return my_clock;
+    return systemTime;
 }
 
 /*
@@ -235,16 +246,17 @@ int task_create(task_t *task,
                 void (*start_func)(void *),
                 void *arg)
 {
+
     task->prio = 0; //prioridade default = 0
     task->dinamic_prio = 0;
     task->is_dispatcher = 0;
-    task->id = id;
-    task->position = id;
+    task->id = nextid;
+    task->position = nextid;
     task->tickcounter = 0;
     task->processing_time = 0;
     task->activations = 0;
     task->creation_time = systime();
-    id = id + 1;
+    nextid = nextid + 1;
 
     getcontext(&task->context);
 
@@ -264,7 +276,7 @@ int task_create(task_t *task,
 
     makecontext(&task->context, (void *)(start_func), 1, arg);
 
-    queue_append(&queue, (queue_t *)task);
+    queue_append((queue_t **)&readyQueue, (queue_t *)task);
 
     return 0;
 }
