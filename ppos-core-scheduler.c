@@ -48,42 +48,42 @@ void task_yield()
             exit(1);
         }
         taskExec = &taskDisp;
-        dispatcher_body();
+        bodyDispatcher();
     }
     task_switch(&taskDisp);
 }
 
-void ppos_init()
-{
+// void ppos_init()
+// {
 
-    setvbuf(stdout, 0, _IONBF, 0);
+//     setvbuf(stdout, 0, _IONBF, 0);
 
-    readyQueue = NULL;
+//     readyQueue = NULL;
 
-    nextid = 0;
-    systemTime = 0;
+//     nextid = 0;
+//     systemTime = 0;
 
-    action.sa_handler = handler_tick;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-    if (sigaction(SIGALRM, &action, 0) < 0)
-    {
-        perror("Erro em sigaction: ");
-        exit(1);
-    }
+//     action.sa_handler = handler_tick;
+//     sigemptyset(&action.sa_mask);
+//     action.sa_flags = 0;
+//     if (sigaction(SIGALRM, &action, 0) < 0)
+//     {
+//         perror("Erro em sigaction: ");
+//         exit(1);
+//     }
 
-    // ajusta valores do temporizador
-    timer.it_value.tv_usec = 1000;    // primeiro disparo, em micro-segundos
-    timer.it_value.tv_sec = 0;        // primeiro disparo, em segundos
-    timer.it_interval.tv_usec = 1000; // disparos subsequentes, em micro-segundos
-    timer.it_interval.tv_sec = 0;     // disparos subsequentes, em segundos
+//     // ajusta valores do temporizador
+//     timer.it_value.tv_usec = 1000;    // primeiro disparo, em micro-segundos
+//     timer.it_value.tv_sec = 0;        // primeiro disparo, em segundos
+//     timer.it_interval.tv_usec = 1000; // disparos subsequentes, em micro-segundos
+//     timer.it_interval.tv_sec = 0;     // disparos subsequentes, em segundos
 
-    // Cria a tarefa de dispatcher
-    task_create(&taskDisp, dispatcher_body, "Dispatcher");
-    taskDisp.is_dispatcher = 1;
-    task_setprio(&taskDisp, -20);
-    taskExec = NULL;
-}
+//     // Cria a tarefa de dispatcher
+//     task_create(&taskDisp, bodyDispatcher, "Dispatcher");
+//     taskDisp.is_dispatcher = 1;
+//     task_setprio(&taskDisp, -20);
+//     taskExec = NULL;
+// }
 
 /*
 Aqui o escalonador vai passar por todas as tarefas e escolher a que tem
@@ -152,36 +152,36 @@ int task_getprio(task_t *task)
 /*
 Muda o contexto da tarefa atual para a tarefa passa por parâmetro.
 */
-int task_switch(task_t *task)
-{
-    if (task == NULL)
-        return -1;
-    else
-    {
-        /* salva o estado da tarefa atual e troca para a tarefa recebida */
-        task_t *aux = taskExec;
-        taskExec = task;
-        // incrementa o número de vezes que foi dada ao processador
-        taskExec->activations += 1;
-        swapcontext(&aux->context, &taskExec->context);
-    }
-    return 0; //se deu tudo certo
-}
+// int task_switch(task_t *task)
+// {
+//     if (task == NULL)
+//         return -1;
+//     else
+//     {
+//         /* salva o estado da tarefa atual e troca para a tarefa recebida */
+//         task_t *aux = taskExec;
+//         taskExec = task;
+//         // incrementa o número de vezes que foi dada ao processador
+//         taskExec->activations += 1;
+//         swapcontext(&aux->context, &taskExec->context);
+//     }
+//     return 0; //se deu tudo certo
+// }
 
 /*
 Função chamada no final de cada tarefa.
 Apenas remove ela da fila de tarefas e dá a execução ao dispatcher.
 */
-void task_exit(int exitCode)
-{
-    if (IS_CONTAB)
-    {
-        printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", taskExec->id + 1, systime() - taskExec->creation_time, taskExec->processing_time, taskExec->activations);
-    }
-    queue_remove((queue_t **)&readyQueue, (queue_t *)taskExec);
-    task_yield();
-    return;
-}
+// void task_exit(int exitCode)
+// {
+//     if (IS_CONTAB)
+//     {
+//         printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", taskExec->id + 1, systime() - taskExec->creation_time, taskExec->processing_time, taskExec->activations);
+//     }
+//     queue_remove((queue_t **)&readyQueue, (queue_t *)taskExec);
+//     task_yield();
+//     return;
+// }
 
 // Retorna o valor do contador de ticks
 unsigned int systime()
@@ -193,41 +193,62 @@ unsigned int systime()
 Função chamada para criar tarefas.
 Seta todas as propriedades com valores padrão e adiciona na fila.
 */
-int task_create(task_t *task,
-                void (*start_func)(void *),
-                void *arg)
-{
+// int task_create(task_t *task,
+//                 void (*start_func)(void *),
+//                 void *arg)
+// {
 
-    task->prio = 0; //prioridade default = 0
-    task->dinamic_prio = 0;
-    task->is_dispatcher = 0;
-    task->id = nextid;
-    task->position = nextid;
-    task->tickcounter = 0;
-    task->processing_time = 0;
-    task->activations = 0;
-    task->creation_time = systime();
-    nextid = nextid + 1;
+//     task->prio = 0; //prioridade default = 0
+//     task->dinamic_prio = 0;
+//     task->is_dispatcher = 0;
+//     task->id = nextid;
+//     task->position = nextid;
+//     task->tickcounter = 0;
+//     task->processing_time = 0;
+//     task->activations = 0;
+//     task->creation_time = systime();
+//     nextid = nextid + 1;
 
-    getcontext(&task->context);
+//     getcontext(&task->context);
 
-    char *stack = malloc(STACKSIZE);
-    if (stack)
-    { // se for retorna
-        task->context.uc_stack.ss_sp = stack;
-        task->context.uc_stack.ss_size = STACKSIZE;
-        task->context.uc_stack.ss_flags = 0;
-        task->context.uc_link = 0;
-    }
-    else
-    {
-        perror("Erro na criação da pilha: ");
-        exit(1);
-    }
+//     char *stack = malloc(STACKSIZE);
+//     if (stack)
+//     { // se for retorna
+//         task->context.uc_stack.ss_sp = stack;
+//         task->context.uc_stack.ss_size = STACKSIZE;
+//         task->context.uc_stack.ss_flags = 0;
+//         task->context.uc_link = 0;
+//     }
+//     else
+//     {
+//         perror("Erro na criação da pilha: ");
+//         exit(1);
+//     }
 
-    makecontext(&task->context, (void *)(start_func), 1, arg);
+//     makecontext(&task->context, (void *)(start_func), 1, arg);
 
-    queue_append((queue_t **)&readyQueue, (queue_t *)task);
+//     queue_append((queue_t **)&readyQueue, (queue_t *)task);
 
-    return 0;
-}
+//     return 0;
+// }
+
+void before_task_exit() {}
+void after_task_exit() {}
+
+void before_task_create(task_t *task) {}
+void after_task_create(task_t *task) {}
+
+void before_task_switch(task_t *task) {}
+void after_task_switch(task_t *task) {}
+
+void before_task_resume(task_t *task) {}
+void after_task_resume(task_t *task) {}
+
+void before_task_suspend(task_t *task) {}
+void after_task_suspend(task_t *task) {}
+
+void before_task_sleep() {}
+void after_task_sleep() {}
+
+void before_ppos_init() {}
+void after_ppos_init() {}

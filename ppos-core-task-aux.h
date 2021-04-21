@@ -1,5 +1,5 @@
 #define IS_CONTAB 1
 
-void dispatcher_body();
+void bodyDispatcher();
 
 void handler_tick(int signum);

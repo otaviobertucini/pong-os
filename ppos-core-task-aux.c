@@ -3,7 +3,7 @@
 #include "ppos-core-task-aux.h"
 
 // ****************************************************************************
-// Coloque aqui as suas modificações, p.ex. includes, defines variáveis, 
+// Coloque aqui as suas modificações, p.ex. includes, defines variáveis,
 // estruturas e funções
 
 /*
@@ -34,7 +34,7 @@ Enquanto a fila de tarefas não for vazia, chama o escalodador para
 escolher qual a próxima tarefa a ser executada. 
 Uma vez escolhida a tarefa, dá 20ms de processador para ela.
 */
-void dispatcher_body()
+void bodyDispatcher()
 {
 
     task_t *next = NULL;
