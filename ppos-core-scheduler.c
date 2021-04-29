@@ -235,7 +235,20 @@ Seta todas as propriedades com valores padrão e adiciona na fila.
 void before_task_exit() {}
 void after_task_exit() {}
 
-void before_task_create(task_t *task) {}
+void before_task_create(task_t *task)
+{
+    task->prio = 0; //prioridade default = 0
+    task->dinamic_prio = 0;
+    task->is_dispatcher = 0;
+    task->id = nextid;
+    task->position = nextid;
+    task->tickcounter = 0;
+    task->processing_time = 0;
+    task->activations = 0;
+    task->creation_time = systime();
+    nextid = nextid + 1;
+}
+
 void after_task_create(task_t *task) {}
 
 void before_task_switch(task_t *task) {}
@@ -251,4 +264,7 @@ void before_task_sleep() {}
 void after_task_sleep() {}
 
 void before_ppos_init() {}
-void after_ppos_init() {}
+void after_ppos_init()
+{
+    taskDisp.is_dispatcher = 1;
+}
