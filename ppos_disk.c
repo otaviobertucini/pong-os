@@ -55,6 +55,7 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
     }
 
     has_interrupt = 0;
+    return 0;
 }
 
 void handler_disk()
@@ -83,7 +84,11 @@ int disk_block_read(int block, void *buffer)
     // libera semáforo de acesso ao disco
 
     // suspende a tarefa corrente (retorna ao dispatcher)
+    return 0;
 }
 
 // escrita de um bloco, do buffer para o disco
-int disk_block_write(int block, void *buffer) {}
+int disk_block_write(int block, void *buffer) {
+
+    return 0;
+}

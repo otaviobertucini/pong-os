@@ -14,3 +14,6 @@ ppos-core-scheduler.o: ppos-core-scheduler.c
 
 ppos-core-task-aux.o: ppos-core-task-aux.c
 	gcc -c -Wall ppos-core-task-aux.c -lrt
+
+clean:
+	rm -f ppos-core-task-aux.o ppos-core-scheduler.o pingpong-disco1.o disk.o ppos_disk.o driver
