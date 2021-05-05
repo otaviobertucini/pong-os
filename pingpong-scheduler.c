@@ -45,6 +45,7 @@ int main (int argc, char *argv[])
   task_setprio (&Pong, 6);
 
   task_create (&Pung, Body, "                    Pung") ;
+
   task_setprio (&Pung, 8);
 
   task_yield () ;

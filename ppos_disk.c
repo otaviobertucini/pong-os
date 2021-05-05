@@ -11,6 +11,38 @@ task_t *disk_mgr_task;
 
 semaphore_t *disk_sem;
 
+// int sem_create(semaphore_t *s, int value)
+// {
+//     s->queue = NULL;
+//     s->first = NULL;
+//     s->value = value;
+//     s->active = 1;
+
+//     return 0;
+// }
+
+// int sem_down(semaphore_t *s)
+// {
+
+//     s->value = s->value - 1;
+//     if (s->value < 0) // Semáforo não está vazio
+//     {
+//         if (queue_size((queue_t *)s->queue) == 0)
+//         {
+//             s->first = taskExec;
+//         };
+//         queue_append((queue_t **)s->queue, (queue_t *)taskExec);
+//         task_yield();
+//     }
+//     return 0;
+// }
+
+// int sem_up(semaphore_t *s)
+// {
+
+//     s->value = s->value + 1;
+// }
+
 void diskDriverBody(void *args)
 {
 
@@ -88,7 +120,8 @@ int disk_block_read(int block, void *buffer)
 }
 
 // escrita de um bloco, do buffer para o disco
-int disk_block_write(int block, void *buffer) {
+int disk_block_write(int block, void *buffer)
+{
 
     return 0;
 }

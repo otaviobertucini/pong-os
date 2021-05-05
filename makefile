@@ -1,19 +1,28 @@
-all: driver
+all: contab prio preemp
 
-driver: ppos_disk.o ppos-core-task.o pingpong-disco1.o ppos-core-sched.o ppos-core-scheduler.o ppos-core-task-aux.o disk.o
-	gcc -o driver pingpong-disco1.o ppos-core-sched.o ppos_disk.o ppos-core-task.o queue.o ppos-core-scheduler.o ppos-core-task-aux.o disk.o -lrt
+contab: contab.o
+	gcc -o contab pingpong-contab-prio.o ppos-core-task-aux.o ppos-core-scheduler.o queue.o ppos-core-task.o ppos-core-sched.o 
 
-ppos_disk.o: ppos_disk.c
-	gcc -c -Wall ppos_disk.c -lrt
+contab.o: ppos-core-scheduler.o
+	gcc -c -Wall pingpong-contab-prio.c
 
-pingpong-disco1.o: pingpong-disco1.c
-	gcc -c -Wall pingpong-disco1.c -lrt
+prio: prio.o
+	gcc -o prio pingpong-scheduler.o ppos-core-scheduler.o queue.o ppos-core-task-aux.o ppos-core-task.o ppos-core-sched.o
 
-ppos-core-scheduler.o: ppos-core-scheduler.c
-	gcc -c -Wall ppos-core-scheduler.c -lrt
+prio.o: ppos-core-scheduler.o
+	gcc -c -Wall pingpong-scheduler.c
+	
+preemp: preemp.o
+	gcc -o preemp pingpong-preempcao.o ppos-core-scheduler.o queue.o ppos-core-task-aux.o ppos-core-task.o ppos-core-sched.o
+
+preemp.o: ppos-core-scheduler.o
+	 gcc -c -Wall pingpong-preempcao.c
+
+ppos-core-scheduler.o: ppos-core-task-aux.o ppos-core-scheduler.c
+	gcc -c -Wall ppos-core-scheduler.c
 
 ppos-core-task-aux.o: ppos-core-task-aux.c
-	gcc -c -Wall ppos-core-task-aux.c -lrt
+	gcc -c -Wall ppos-core-task-aux.c
 
 clean:
-	rm -f ppos-core-task-aux.o ppos-core-scheduler.o pingpong-disco1.o disk.o ppos_disk.o driver
+	 rm -f pingpong-scheduler.o pingpong-preempcao.o pingpong-contab-prio.o ppos-core-scheduler.o prio preemp contab pong

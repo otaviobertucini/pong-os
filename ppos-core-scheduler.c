@@ -35,23 +35,23 @@ dispatcher diretamente.
 Caso uma tarefa já esteja executando, apenas troca o contexto para o 
 escalonador.
 */
-void task_yield()
-{
+// void task_yield()
+// {
 
-    if (taskExec == NULL)
-    {
-        // arma o temporizador ITIM//float mindist = distance(array[pa], array[&pb]);ER_REAL (vide man setitimer)
+//     if (taskExec == NULL)
+//     {
+//         // arma o temporizador ITIM//float mindist = distance(array[pa], array[&pb]);ER_REAL (vide man setitimer)
 
-        if (setitimer(ITIMER_REAL, &timer, 0) < 0)
-        {
-            perror("Erro em setitimer: ");
-            exit(1);
-        }
-        taskExec = &taskDisp;
-        bodyDispatcher();
-    }
-    task_switch(&taskDisp);
-}
+//         if (setitimer(ITIMER_REAL, &timer, 0) < 0)
+//         {
+//             perror("Erro em setitimer: ");
+//             exit(1);
+//         }
+//         taskExec = &taskDisp;
+//         bodyDispatcher();
+//     }
+//     task_switch(&taskDisp);
+// }
 
 // void ppos_init()
 // {
@@ -94,6 +94,8 @@ terá sua prioridade dinâmica restaurada para a prioridade original
 */
 task_t *scheduler()
 {
+
+    // printf("entrei\n");
     task_t *aux_ini = &taskDisp;
     task_t *next = aux_ini->next;
     task_t *aux_current = next->next;
@@ -123,6 +125,7 @@ task_t *scheduler()
     }
 
     next->dinamic_prio = next->prio; //reinicia a prioridade dinâmica
+    // printf("shchehuua (prioridade %d)\n", task_getprio(next->next->next));
 
     return next;
 }
@@ -133,6 +136,8 @@ Caso |prio| > 20 o valor será setado para 20.
 */
 void task_setprio(task_t *task, int prio)
 {
+    if (task == NULL)
+        task = taskExec;
     if (prio < -20)
         task->prio = -20;
     if (prio > 20)
@@ -267,4 +272,13 @@ void before_ppos_init() {}
 void after_ppos_init()
 {
     taskDisp.is_dispatcher = 1;
+    task_setprio(&taskDisp, -20);
+    queue_append((queue_t **)&readyQueue, (queue_t *)&taskDisp);
+}
+
+void before_task_yield()
+{
+}
+void after_task_yield()
+{
 }

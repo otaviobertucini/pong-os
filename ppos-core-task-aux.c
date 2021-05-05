@@ -34,24 +34,24 @@ Enquanto a fila de tarefas não for vazia, chama o escalodador para
 escolher qual a próxima tarefa a ser executada. 
 Uma vez escolhida a tarefa, dá 20ms de processador para ela.
 */
-void bodyDispatcher()
-{
+// void bodyDispatcher()
+// {
 
-    task_t *next = NULL;
-    while (queue_size((queue_t *)readyQueue) > 1)
-    {
-        next = scheduler();
-        next->tickcounter = 20;
-        if (next != NULL)
-        {
-            task_switch(next);
-        }
-    }
-    if (IS_CONTAB)
-    {
-        printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", taskExec->id + 1, systime() - taskExec->creation_time, taskExec->processing_time, taskExec->activations);
-    }
-    return;
-}
+//     task_t *next = NULL;
+//     while (queue_size((queue_t *)readyQueue) > 1)
+//     {
+//         next = scheduler();
+//         next->tickcounter = 20;
+//         if (next != NULL)
+//         {
+//             task_switch(next);
+//         }
+//     }
+//     if (IS_CONTAB)
+//     {
+//         printf("Task %d exit: execution time %d ms, processor time %d ms, %d activations\n", taskExec->id + 1, systime() - taskExec->creation_time, taskExec->processing_time, taskExec->activations);
+//     }
+//     return;
+// }
 
 // ****************************************************************************
