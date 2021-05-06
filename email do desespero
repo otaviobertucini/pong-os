@@ -1,0 +1,8 @@
+Bom dia professor,
+
+Estamos tendo problemas ao rodar o código de preempção com os arquivos .o forncecidos. Se o professor lembra, nós implementamos todas as funções, mesmo aquelas que foram fornecidas pelo professor, e agora estamos tentando reverter para o uso adequado dos arquivos objeto. Entendemos que precisamos adequar nosso código para o uso das implementações fornecidas, no entanto parece que a preempção está sempre desativa(preemption == 0).
+O pingpong-scheduler.c (prioridade) está funcionando corretamente. 
+
+Desde já agradecemos,
+Otávio Bertucini
+Saulo Bergamo

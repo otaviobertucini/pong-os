@@ -14,6 +14,7 @@ dá o processador para o dispathcer escolher a próxima tarefa.
 */
 void handler_tick(int signum)
 {
+    printf("tick: %d", taskExec->tickcounter);
     systemTime += 1;
     if (taskExec == NULL || taskExec->is_dispatcher)
     {           // ver se é dispatcher via flag

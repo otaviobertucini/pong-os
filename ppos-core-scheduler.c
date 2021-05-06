@@ -25,9 +25,9 @@ unsigned int systemTime;
 unsigned char preemption = 1;
 
 // Structs de tempo e signals
-struct sigaction action;
+/* struct sigaction action;
 struct itimerval timer;
-
+ */
 /*
 Função responsável por abstrair a troca de contextos entre tarefas.
 Caso nenhuma tarefa tenha sido escolhida para ser executada, chama o 
@@ -95,7 +95,8 @@ terá sua prioridade dinâmica restaurada para a prioridade original
 task_t *scheduler()
 {
 
-    // printf("entrei\n");
+    // printf("entrei %d\n", preemption);
+    //printf("entrei %d\n", PPOS_IS_PREEMPT_ACTIVE);
     task_t *aux_ini = &taskDisp;
     task_t *next = aux_ini->next;
     task_t *aux_current = next->next;
@@ -256,7 +257,10 @@ void before_task_create(task_t *task)
 
 void after_task_create(task_t *task) {}
 
-void before_task_switch(task_t *task) {}
+void before_task_switch(task_t *task) {
+    task->tickcounter = 20;    
+    // preemption = 1;
+}
 void after_task_switch(task_t *task) {}
 
 void before_task_resume(task_t *task) {}
@@ -268,17 +272,55 @@ void after_task_suspend(task_t *task) {}
 void before_task_sleep() {}
 void after_task_sleep() {}
 
-void before_ppos_init() {}
+void before_ppos_init() {
+    setvbuf(stdout, 0, _IONBF, 0);
+}
 void after_ppos_init()
 {
+    PPOS_PREEMPT_DISABLE
+    // preemption = 1;
+    action.sa_handler = handler_tick;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    if (sigaction(SIGALRM, &action, 0) < 0)
+    {
+        perror("Erro em sigaction: ");
+        exit(1);
+    }
+
+    // ajusta valores do temporizador
+    timer.it_value.tv_usec = 1000;    // primeiro disparo, em micro-segundos
+    timer.it_value.tv_sec = 0;        // primeiro disparo, em segundos
+    timer.it_interval.tv_usec = 1000; // disparos subsequentes, em micro-segundos
+    timer.it_interval.tv_sec = 0;     // disparos subsequentes, em segundos
+
+    // printf("entrei rsrs %d", preemption);
     taskDisp.is_dispatcher = 1;
     task_setprio(&taskDisp, -20);
     queue_append((queue_t **)&readyQueue, (queue_t *)&taskDisp);
+    // preemption = 1;
 }
 
 void before_task_yield()
 {
+    // preemption = 1;
 }
 void after_task_yield()
 {
+ /*     if (taskExec == NULL)
+    {
+        // arma o temporizador ITIM//float mindist = distance(array[pa], array[&pb]);ER_REAL (vide man setitimer)
+
+        if (setitimer(ITIMER_REAL, &timer, 0) < 0)
+        {
+            perror("Erro em setitimer: ");
+            exit(1);
+        }
+        taskExec = &taskDisp;
+        bodyDispatcher();
+    }
+    task_switch(&taskDisp); */
 }
+
+int before_task_join (task_t *task) {}
+int after_task_join (task_t *task) {}

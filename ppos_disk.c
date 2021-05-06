@@ -7,41 +7,9 @@
 
 int has_interrupt;
 
-task_t *disk_mgr_task;
+task_t disk_mgr_task;
 
-semaphore_t *disk_sem;
-
-// int sem_create(semaphore_t *s, int value)
-// {
-//     s->queue = NULL;
-//     s->first = NULL;
-//     s->value = value;
-//     s->active = 1;
-
-//     return 0;
-// }
-
-// int sem_down(semaphore_t *s)
-// {
-
-//     s->value = s->value - 1;
-//     if (s->value < 0) // Semáforo não está vazio
-//     {
-//         if (queue_size((queue_t *)s->queue) == 0)
-//         {
-//             s->first = taskExec;
-//         };
-//         queue_append((queue_t **)s->queue, (queue_t *)taskExec);
-//         task_yield();
-//     }
-//     return 0;
-// }
-
-// int sem_up(semaphore_t *s)
-// {
-
-//     s->value = s->value + 1;
-// }
+semaphore_t disk_sem;
 
 void diskDriverBody(void *args)
 {
@@ -57,10 +25,14 @@ void diskDriverBody(void *args)
 }
 
 int disk_mgr_init(int *numBlocks, int *blockSize)
-{
+{ 
 
     // Inicia um semáforo de leituras
-    if (sem_create(disk_sem, 1) < 0)
+    if(sem_create(&disk_sem, 1) < 0){
+        return -1;
+    }
+    
+    if (disk_cmd(DISK_CMD_INIT, 0, 0) < 0)
     {
         return -1;
     }
@@ -68,23 +40,18 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
     // Retorna o número de blocos e o tamanho de cada bloco
     *numBlocks = disk_cmd(DISK_CMD_DISKSIZE, 0, 0);
     *blockSize = disk_cmd(DISK_CMD_BLOCKSIZE, 0, 0);
+    
+
     if (*numBlocks < 0 || *blockSize < 0)
     {
         return -1;
     }
-
     // Cria a tarefa de disco
-    if (task_create(disk_mgr_task, diskDriverBody, NULL) < 0)
+    if (task_create(&disk_mgr_task, diskDriverBody, NULL) < 0)
     {
         printf("Deu ruim");
         return -1;
     };
-
-    // Cria o disco em si
-    if (disk_cmd(DISK_CMD_INIT, 0, 0) < 0)
-    {
-        return -1;
-    }
 
     has_interrupt = 0;
     return 0;
@@ -106,7 +73,9 @@ int disk_block_read(int block, void *buffer)
     // obtém o semáforo de acesso ao disco
 
     // inclui o pedido na fila_disco
-    queue_append((queue_t **)disk_sem->queue, (queue_t *)taskExec);
+    queue_append((queue_t **)disk_sem.queue, (queue_t *)taskExec);
+
+    disk_cmd (DISK_CMD_READ, block, buffer);
 
     // if (gerente de disco está dormindo)
     // {
@@ -123,5 +92,39 @@ int disk_block_read(int block, void *buffer)
 int disk_block_write(int block, void *buffer)
 {
 
+    //int disk_cmd (DISK_CMD_WRITE, int block, void *buffer) ;
     return 0;
 }
+
+int before_barrier_create (barrier_t *b, int N) {}
+int after_barrier_create (barrier_t *b, int N) {}
+
+int before_barrier_join (barrier_t *b) {}
+int after_barrier_join (barrier_t *b) {}
+
+int before_barrier_destroy (barrier_t *b) {}
+int after_barrier_destroy (barrier_t *b) {}
+
+int before_mutex_create (mutex_t *m) {}
+int after_mutex_create (mutex_t *m) {}
+
+int before_mutex_lock (mutex_t *m) {}
+int after_mutex_lock (mutex_t *m) {}
+
+int before_mutex_unlock (mutex_t *m) {}
+int after_mutex_unlock (mutex_t *m) {}
+
+int before_mutex_destroy (mutex_t *m) {}
+int after_mutex_destroy (mutex_t *m) {}
+
+int before_sem_create (semaphore_t *s, int value) {}
+int after_sem_create (semaphore_t *s, int value) {}
+
+int before_sem_down (semaphore_t *s) {}
+int after_sem_down (semaphore_t *s) {}
+
+int before_sem_up (semaphore_t *s) {}
+int after_sem_up (semaphore_t *s) {}
+
+int before_sem_destroy (semaphore_t *s) {}
+int after_sem_destroy (semaphore_t *s) {}
