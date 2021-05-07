@@ -17,7 +17,7 @@ struct sigaction action;
 struct itimerval timer;
 
 // Contador dos ids das tarefas
-long nextid;
+long nextid = 0;
 
 // Contador de ticks do relógio passados
 unsigned int systemTime;
@@ -95,7 +95,6 @@ terá sua prioridade dinâmica restaurada para a prioridade original
 task_t *scheduler()
 {
 
-    // printf("entrei %d\n", preemption);
     //printf("entrei %d\n", PPOS_IS_PREEMPT_ACTIVE);
     task_t *aux_ini = &taskDisp;
     task_t *next = aux_ini->next;
@@ -128,6 +127,9 @@ task_t *scheduler()
     next->dinamic_prio = next->prio; //reinicia a prioridade dinâmica
     // printf("shchehuua (prioridade %d)\n", task_getprio(next->next->next));
 
+    // printf("entrei sched\n");
+    print_tcb(next);
+    printf("size: %d", queue_size(readyQueue));
     return next;
 }
 
@@ -257,8 +259,9 @@ void before_task_create(task_t *task)
 
 void after_task_create(task_t *task) {}
 
-void before_task_switch(task_t *task) {
-    task->tickcounter = 20;    
+void before_task_switch(task_t *task)
+{
+    task->tickcounter = 20;
     // preemption = 1;
 }
 void after_task_switch(task_t *task) {}
@@ -272,12 +275,13 @@ void after_task_suspend(task_t *task) {}
 void before_task_sleep() {}
 void after_task_sleep() {}
 
-void before_ppos_init() {
+void before_ppos_init()
+{
     setvbuf(stdout, 0, _IONBF, 0);
 }
 void after_ppos_init()
 {
-    PPOS_PREEMPT_DISABLE
+    // PPOS_PREEMPT_DISABLE
     // preemption = 1;
     action.sa_handler = handler_tick;
     sigemptyset(&action.sa_mask);
@@ -303,11 +307,11 @@ void after_ppos_init()
 
 void before_task_yield()
 {
-    // preemption = 1;
 }
 void after_task_yield()
 {
- /*     if (taskExec == NULL)
+    printf("oieee\n");
+    /*     if (taskExec == NULL)
     {
         // arma o temporizador ITIM//float mindist = distance(array[pa], array[&pb]);ER_REAL (vide man setitimer)
 
@@ -322,5 +326,5 @@ void after_task_yield()
     task_switch(&taskDisp); */
 }
 
-int before_task_join (task_t *task) {}
-int after_task_join (task_t *task) {}
+int before_task_join(task_t *task) {}
+int after_task_join(task_t *task) {}

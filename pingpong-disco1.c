@@ -44,6 +44,7 @@ int main (int argc, char *argv[])
   // lê e imprime todos os blocos do disco, um a um
   for (i=0; i<numblocks; i++)
   {
+    printf("morir\n");
     // lê o bloco i do disco no buffer
     printf ("%5d ms: lendo bloco %d\n", systime(), i) ;
     if (disk_block_read (i, buffer))
