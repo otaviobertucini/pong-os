@@ -11,27 +11,68 @@ task_t disk_mgr_task;
 
 semaphore_t disk_sem;
 
-task_t suspended;
+task_t *disk_tasks;
+
+struct sigaction diskSign;
+
+int diskFree;
+
+request_t *requests;
+
+// Escolher próximas requisição a ser atendida
+// request_t* diskScheduler(){
+//     // return taskMain
+// }
+
+void handler_disk()
+{
+
+    // ...
+    printf("iashduashdasu\n");
+
+    has_interrupt = 1;
+
+    // task_switch para tarefa disco (diskDriverBody)
+}
 
 void diskDriverBody(void *args)
 {
-
+    request_t *next;
     while (1)
     {
 
+        sem_down(&disk_sem);
+
         // printf("diskDriver\n");
+
+        // O disk scheduler vai escolher uma requisição para
+        // atende-la = next
 
         if (has_interrupt)
         {
+            has_interrupt = 0;
+
+            // task_resume(&next->task);
+            task_resume(&taskMain);
+            diskFree = 1;
             // ...
         }
 
-        // disk_cmd(DISK_CMD_READ, block, buffer);
+        if (diskFree && queue_size((queue_t *)requests) > 0) // && queue_size((queue_t *)requests) > 0)
+        {
 
-        has_interrupt = 0;
+            next = (request_t *)queue_remove((queue_t **)&requests, (queue_t *)requests);
+
+            disk_cmd(DISK_CMD_READ, next->block, next->buffer);
+            diskFree = 0;
+            free(next);
+        }
+
+        // queue_remove((queue_t **)&suspended, (queue_t *)&taskMain);
+
+        sem_up(&disk_sem);
 
         task_yield();
-
         //Coloca na fila de dormindo a tarefa corrente -> apend_queue current_task fila_sleep
     }
 }
@@ -58,6 +99,7 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
     {
         return -1;
     }
+
     // Cria a tarefa de disco
     if (task_create(&disk_mgr_task, diskDriverBody, NULL) < 0)
     {
@@ -65,21 +107,20 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
         return -1;
     };
 
-    // queue_append((queue_t **)&readyQueue, (queue_t *)&disk_mgr_task);
-    // queue_append((queue_t **)&readyQueue, (queue_t *)&taskMain);
+    diskSign.sa_handler = handler_disk;
+    sigemptyset(&diskSign.sa_mask);
+    diskSign.sa_flags = 0;
+    if (sigaction(SIGUSR1, &diskSign, 0) < 0)
+    {
+        perror("Erro em sigaction: ");
+        exit(1);
+    }
 
     has_interrupt = 0;
+    diskFree = 1;
+    requests = NULL;
+    disk_tasks = NULL;
     return 0;
-}
-
-void handler_disk()
-{
-
-    // ...
-
-    has_interrupt = 1;
-
-    // task_switch para tarefa disco (diskDriverBody)
 }
 
 // leitura de um bloco, do disco para o buffer
@@ -95,20 +136,34 @@ int disk_block_read(int block, void *buffer)
     request->buffer = buffer;
     request->createdAt = systime();
     request->task = taskExec;
+    request->next = NULL;
+    request->prev = NULL;
 
     // inclui o pedido na fila_disco
-    queue_append((queue_t **)disk_sem.queue, (queue_t *)request);
+    if (requests == NULL)
+    {
+
+        printf("tamanhia :\n");
+    }
+    queue_append((queue_t **)&requests, (queue_t *)request);
 
     if (disk_mgr_task.state == PPOS_TASK_STATE_SUSPENDED)
     {
         task_resume(&disk_mgr_task);
+        // queue_remove((queue_t **)&suspended, (queue_t *)&disk_mgr_task);
     }
 
     // libera semáforo de acesso ao disco
     sem_up(&disk_sem);
 
     // suspende a tarefa corrente (retorna ao dispatcher)
-    task_suspend(taskExec, (queue_t **)&suspended);
+    // if (taskExec == NULL)
+    // {
+    //     printf("morri aqui\n");
+    // }
+
+    task_suspend(taskExec, &disk_tasks);
+    printf("tamanhia 2:\n");
     // printf("vazei create read\n");
     task_yield();
     // task_switch(&taskMain);

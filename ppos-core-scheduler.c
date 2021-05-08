@@ -95,7 +95,7 @@ terá sua prioridade dinâmica restaurada para a prioridade original
 task_t *scheduler()
 {
 
-    //printf("entrei %d\n", PPOS_IS_PREEMPT_ACTIVE);
+    // printf("entrei %d\n");
     task_t *aux_ini = &taskDisp;
     task_t *next = aux_ini->next;
     task_t *aux_current = next->next;
@@ -128,8 +128,8 @@ task_t *scheduler()
     // printf("shchehuua (prioridade %d)\n", task_getprio(next->next->next));
 
     // printf("entrei sched\n");
-    print_tcb(next);
-    printf("size: %d", queue_size(readyQueue));
+    // print_tcb(next);
+    // printf("size: %d", queue_size(readyQueue));
     return next;
 }
 
@@ -267,7 +267,11 @@ void before_task_switch(task_t *task)
 void after_task_switch(task_t *task) {}
 
 void before_task_resume(task_t *task) {}
-void after_task_resume(task_t *task) {}
+void after_task_resume(task_t *task)
+{
+    // printf("entrei after");
+    // queue_remove((queue_t **)&)
+}
 
 void before_task_suspend(task_t *task) {}
 void after_task_suspend(task_t *task) {}
@@ -301,6 +305,7 @@ void after_ppos_init()
     // printf("entrei rsrs %d", preemption);
     taskDisp.is_dispatcher = 1;
     task_setprio(&taskDisp, -20);
+    // queue_append((queue_t **)&readyQueue, (queue_t *)&taskMain);
     queue_append((queue_t **)&readyQueue, (queue_t *)&taskDisp);
     // preemption = 1;
 }

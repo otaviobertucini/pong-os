@@ -49,7 +49,8 @@ typedef struct task_t
 
 typedef struct request_t {
 
-    struct request_t *prev, *next ;	
+    struct request_t *prev;	
+    struct request_t *next;	
     unsigned char type;
     unsigned int createdAt;
 
