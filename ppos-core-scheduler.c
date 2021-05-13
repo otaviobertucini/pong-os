@@ -315,7 +315,7 @@ void before_task_yield()
 }
 void after_task_yield()
 {
-    printf("oieee\n");
+    // printf("oieee\n");
     /*     if (taskExec == NULL)
     {
         // arma o temporizador ITIM//float mindist = distance(array[pa], array[&pb]);ER_REAL (vide man setitimer)

@@ -13,23 +13,117 @@ semaphore_t disk_sem;
 
 task_t *disk_tasks;
 
+task_t *processing;
+
 struct sigaction diskSign;
 
 int diskFree;
 
 request_t *requests;
 
+int TRUE = 1;
+
+int algorithm = FCFS;
+
+int head;
+int head_moved;
+
+int biggest;
+int smallest;
+
+void hasMoved(int prev, int next)
+{
+    
+    int diff = abs(prev - next);
+    head_moved += diff;
+}
+
+request_t *fcfs()
+{
+    return requests;
+}
+
+request_t *sstf()
+{
+
+    request_t *first = requests;
+    request_t *current = requests;
+    request_t *chosen = NULL;
+    int smaller_diff = -1;
+
+    do
+    {
+
+        int diff = abs(current->block - head);
+        if (smaller_diff == -1 || diff < smaller_diff)
+        {
+            smaller_diff = diff;
+            chosen = current;
+        }
+        current = current->next;
+
+    } while (current != first);
+
+    return chosen;
+}
+
+request_t *cscan()
+{
+
+    request_t *first = requests;
+    request_t *current = requests;
+    request_t *chosen = NULL;
+    int smaller_diff = -1;
+
+    do
+    {
+        int diff = current->block - head;
+        if (diff > 0 && (smaller_diff == -1 || diff < smaller_diff))
+        {
+            smaller_diff = diff;
+            chosen = current;
+        }
+        current = current->next;
+
+    } while (current != first);
+
+    if (chosen->block >= biggest)
+    {
+        head = smallest;
+    }
+
+    return chosen;
+}
+
 // Escolher próximas requisição a ser atendida
-// request_t* diskScheduler(){
-//     // return taskMain
-// }
+request_t *diskScheduler()
+{
+
+    request_t *chosen;
+
+    switch (algorithm)
+    {
+    case FCFS:
+        chosen = fcfs();
+        break;
+    case SSTF:
+        chosen = sstf();
+        break;
+    case CSCAN:
+        chosen = cscan();
+        break;
+    }
+
+
+    hasMoved(head, chosen->block);
+    head = chosen->block;
+    return chosen;
+}
 
 void handler_disk()
 {
 
     // ...
-    printf("iashduashdasu\n");
-
     has_interrupt = 1;
 
     // task_switch para tarefa disco (diskDriverBody)
@@ -37,33 +131,43 @@ void handler_disk()
 
 void diskDriverBody(void *args)
 {
-    request_t *next;
-    while (1)
+    while (TRUE)
     {
 
         sem_down(&disk_sem);
 
         // printf("diskDriver\n");
 
-        // O disk scheduler vai escolher uma requisição para
-        // atende-la = next
+        // O disk scheduler vai escolher uma requisição para atende-la
+        //  = next
 
         if (has_interrupt)
         {
             has_interrupt = 0;
 
-            // task_resume(&next->task);
-            task_resume(&taskMain);
+            task_resume(processing);
+            // task_resume(&taskMain);
             diskFree = 1;
             // ...
         }
 
-        if (diskFree && queue_size((queue_t *)requests) > 0) // && queue_size((queue_t *)requests) > 0)
+        // ----------------------------------------------
+
+        // se livre e tem request
+        if (diskFree && queue_size((queue_t *)requests) > 0)
         {
-
-            next = (request_t *)queue_remove((queue_t **)&requests, (queue_t *)requests);
-
-            disk_cmd(DISK_CMD_READ, next->block, next->buffer);
+            request_t *next = diskScheduler();
+            processing = next->task;
+            // pega a primeira da fila de requisicoes (ver se está certo)
+            next = (request_t *)queue_remove((queue_t **)&requests, (queue_t *)next);
+            if (next->type == READ)
+            {
+                disk_cmd(DISK_CMD_READ, next->block, next->buffer);
+            }
+            else
+            {
+                disk_cmd(DISK_CMD_WRITE, next->block, next->buffer);
+            }
             diskFree = 0;
             free(next);
         }
@@ -72,8 +176,8 @@ void diskDriverBody(void *args)
 
         sem_up(&disk_sem);
 
+        // volta para o dispatcher (ver se está certo)
         task_yield();
-        //Coloca na fila de dormindo a tarefa corrente -> apend_queue current_task fila_sleep
     }
 }
 
@@ -108,7 +212,6 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
     };
 
     diskSign.sa_handler = handler_disk;
-    sigemptyset(&diskSign.sa_mask);
     diskSign.sa_flags = 0;
     if (sigaction(SIGUSR1, &diskSign, 0) < 0)
     {
@@ -120,18 +223,34 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
     diskFree = 1;
     requests = NULL;
     disk_tasks = NULL;
+    head = 0;
+    head_moved = 0;
+    processing = NULL;
+    biggest = -1;
+    smallest = -1;
     return 0;
 }
 
-// leitura de um bloco, do disco para o buffer
-int disk_block_read(int block, void *buffer)
+int process_request(unsigned char type, int block, void *buffer)
 {
+
+    if (biggest == -1 || block > biggest)
+    {
+        biggest = block;
+    }
+
+    if (smallest == -1 || block < smallest)
+    {
+        smallest = block;
+    }
+
     // obtém o semáforo de acesso ao disco
     sem_down(&disk_sem);
 
+    // cria a request
     request_t *request;
     request = malloc(sizeof(request_t));
-    request->type = 'r';
+    request->type = type;
     request->block = block;
     request->buffer = buffer;
     request->createdAt = systime();
@@ -162,11 +281,22 @@ int disk_block_read(int block, void *buffer)
     //     printf("morri aqui\n");
     // }
 
+    // dando erro aqui (pedir para professor)
     task_suspend(taskExec, &disk_tasks);
     printf("tamanhia 2:\n");
     // printf("vazei create read\n");
+
+    // volta para dispatcher
     task_yield();
     // task_switch(&taskMain);
+    return 0;
+}
+
+// leitura de um bloco, do disco para o buffer
+int disk_block_read(int block, void *buffer)
+{
+
+    process_request(READ, block, buffer);
 
     return 0;
 }
@@ -175,7 +305,8 @@ int disk_block_read(int block, void *buffer)
 int disk_block_write(int block, void *buffer)
 {
 
-    //int disk_cmd (DISK_CMD_WRITE, int block, void *buffer) ;
+    process_request(WRITE, block, buffer);
+
     return 0;
 }
 

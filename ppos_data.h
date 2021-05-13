@@ -100,5 +100,12 @@ typedef struct {
     unsigned char active;
 } mqueue_t ;
 
+#define FCFS 1
+#define SSTF 2
+#define CSCAN 3
+
+#define READ 'r'
+#define WRITE 'w'
+
 #endif
 
