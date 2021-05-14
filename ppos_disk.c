@@ -5,6 +5,7 @@
 #include "queue.h"
 #include "ppos-core-globals.h"
 
+
 int has_interrupt;
 
 task_t disk_mgr_task;
@@ -122,11 +123,7 @@ request_t *diskScheduler()
 
 void handler_disk()
 {
-
-    // ...
     has_interrupt = 1;
-
-    // task_switch para tarefa disco (diskDriverBody)
 }
 
 void diskDriverBody(void *args)
@@ -136,19 +133,15 @@ void diskDriverBody(void *args)
 
         sem_down(&disk_sem);
 
-        // printf("diskDriver\n");
-
         // O disk scheduler vai escolher uma requisição para atende-la
         //  = next
 
         if (has_interrupt)
         {
             has_interrupt = 0;
-
-            task_resume(processing);
-
+            // task_resume(processing);
+            task_resume(disk_tasks);
             diskFree = 1;
-            // ...
         }
 
         // ----------------------------------------------
@@ -172,11 +165,7 @@ void diskDriverBody(void *args)
             free(next);
         }
 
-        // queue_remove((queue_t **)&suspended, (queue_t *)&taskMain);
-
         sem_up(&disk_sem);
-        printf("aiaiaiaiaai\n");
-
         // volta para o dispatcher (ver se está certo)
         task_yield();
         // task_switch(&taskDisp);
@@ -260,35 +249,16 @@ int process_request(unsigned char type, int block, void *buffer)
     request->next = NULL;
     request->prev = NULL;
 
-    // inclui o pedido na fila_disco
-    if (requests == NULL)
-    {
-
-        printf("tamanhia :\n");
-    }
     queue_append((queue_t **)&requests, (queue_t *)request);
 
     if (disk_mgr_task.state == PPOS_TASK_STATE_SUSPENDED)
     {
         task_resume(&disk_mgr_task);
-        // queue_remove((queue_t **)&suspended, (queue_t *)&disk_mgr_task);
     }
-
     // libera semáforo de acesso ao disco
     sem_up(&disk_sem);
-
     // suspende a tarefa corrente (retorna ao dispatcher)
-    // if (taskExec == NULL)
-    // {
-    //     printf("morri aqui\n");
-    // }
-
-    // dando erro aqui (pedir para professor)
     task_suspend(taskExec, &disk_tasks);
-    printf("tamanhia 2:\n");
-    // printf("vazei create read\n");
-
-    // volta para dispatcher
     task_yield();
     // task_switch(&taskMain);
     return 0;
