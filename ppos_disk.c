@@ -146,7 +146,7 @@ void diskDriverBody(void *args)
             has_interrupt = 0;
 
             task_resume(processing);
-            // task_resume(&taskMain);
+
             diskFree = 1;
             // ...
         }
@@ -175,9 +175,11 @@ void diskDriverBody(void *args)
         // queue_remove((queue_t **)&suspended, (queue_t *)&taskMain);
 
         sem_up(&disk_sem);
+        printf("aiaiaiaiaai\n");
 
         // volta para o dispatcher (ver se está certo)
         task_yield();
+        // task_switch(&taskDisp);
     }
 }
 
@@ -310,7 +312,7 @@ int disk_block_write(int block, void *buffer)
     return 0;
 }
 
-int before_barrier_create(barrier_t *b, int N) {}
+/* int before_barrier_create(barrier_t *b, int N) {}
 int after_barrier_create(barrier_t *b, int N) {}
 
 int before_barrier_join(barrier_t *b) {}
@@ -341,4 +343,4 @@ int before_sem_up(semaphore_t *s) {}
 int after_sem_up(semaphore_t *s) {}
 
 int before_sem_destroy(semaphore_t *s) {}
-int after_sem_destroy(semaphore_t *s) {}
+int after_sem_destroy(semaphore_t *s) {} */

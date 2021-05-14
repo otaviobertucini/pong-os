@@ -1,7 +1,7 @@
 all: driver
 
-driver: ppos_disk.o ppos-core-task.o pingpong-disco1.o ppos-core-sched.o ppos-core-scheduler.o ppos-core-task-aux.o queue.o disk.o ppos-ipc-barrier.o ppos-ipc-mqueue.o ppos-ipc-mutex.o ppos-ipc-semaphore.o
-	gcc -o driver ppos_disk.o ppos-core-task.o pingpong-disco1.o ppos-core-sched.o ppos-core-scheduler.o ppos-core-task-aux.o queue.o disk.o ppos-ipc-barrier.o ppos-ipc-mqueue.o ppos-ipc-mutex.o ppos-ipc-semaphore.o -lrt
+driver: ppos_disk.o pingpong-disco1.o queue.o disk.o ppos-all.o disk.o ppos-core-task-aux.o
+	gcc -o driver pingpong-disco1.o ppos_disk.o queue.o disk.o ppos-all.o ppos-core-task-aux.o -lrt
 
 ppos_disk.o: ppos_disk.c
 	gcc -c -Wall ppos_disk.c -lrt
@@ -14,6 +14,9 @@ ppos-core-scheduler.o: ppos-core-scheduler.c
 
 ppos-core-task-aux.o: ppos-core-task-aux.c
 	gcc -c -Wall ppos-core-task-aux.c -lrt
+
+disk.o: disk.c
+	gcc -c -Wall disk.c -lrt
 
 clean:
 	rm -f ppos-core-task-aux.o ppos-core-scheduler.o pingpong-disco1.o disk.o ppos_disk.o driver
