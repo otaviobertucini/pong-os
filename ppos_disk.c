@@ -24,7 +24,7 @@ request_t *requests;
 
 int TRUE = 1;
 
-int algorithm = FCFS;
+int algorithm = SSTF;
 
 int head;
 int head_moved;
@@ -49,7 +49,7 @@ request_t *sstf()
 
     request_t *first = requests;
     request_t *current = requests;
-    request_t *chosen = NULL;
+    request_t *chosen = current;
     int smaller_diff = -1;
 
     do
@@ -73,7 +73,7 @@ request_t *cscan()
 
     request_t *first = requests;
     request_t *current = requests;
-    request_t *chosen = NULL;
+    request_t *chosen = current;
     int smaller_diff = -1;
 
     do
