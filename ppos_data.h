@@ -47,19 +47,6 @@ typedef struct task_t
  
 } task_t ;
 
-typedef struct request_t {
-
-    struct request_t *prev;	
-    struct request_t *next;	
-    unsigned char type;
-    unsigned int createdAt;
-
-    int block;
-    void *buffer;
-
-    task_t *task;
-
-} request_t;
 
 // estrutura que define um semáforo
 typedef struct {
@@ -100,12 +87,7 @@ typedef struct {
     unsigned char active;
 } mqueue_t ;
 
-#define FCFS 1
-#define SSTF 2
-#define CSCAN 3
 
-#define READ 'r'
-#define WRITE 'w'
 
 #endif
 

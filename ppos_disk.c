@@ -5,45 +5,76 @@
 #include "queue.h"
 #include "ppos-core-globals.h"
 
+#define FCFS 1
+#define SSTF 2
+#define CSCAN 3
 
-int has_interrupt;
+#define READ 'r'
+#define WRITE 'w'
 
-task_t disk_mgr_task;
+typedef struct request_t {
 
-semaphore_t disk_sem;
+    struct request_t *prev;	
+    struct request_t *next;	
+    unsigned char type;
+    unsigned int createdAt;
 
-task_t *disk_tasks;
+    int block;
+    void *buffer;
 
-task_t *processing;
+    task_t *task;
 
-struct sigaction diskSign;
+} request_t;
 
-int diskFree;
+/* hardcoded disk_t */
+int has_interrupt;      // Flag para registrar se há interrupção
 
-request_t *requests;
+task_t disk_mgr_task;   //Tarefa gerenciadora
 
+semaphore_t disk_sem;   //Semáforo do disco
+
+task_t* disk_tasks;     //Fila de tarefas
+
+struct sigaction diskSign; //Struct para captura de sinais de interrupç]ap
+
+int diskFree;           //Flag para verificar se o disco está livre
+
+request_t *requests;    //Fila de requisições
+
+/* Demais variávei globais */
 int TRUE = 1;
 
-int algorithm = SSTF;
+int algorithm = FCFS;  //Define o algoritmo que será utilizado pelo escalonador
 
-int head;
-int head_moved;
+int head;               //Utilizado para o registro da posição atual da cabeça de leitura
+int head_moved;         //Utilizado para o registro da quantidade de blocos que a cabeça de leitura moveu 
 
-int biggest;
-int smallest;
+int biggest;            //Guarda a requisição com posição de leitura mais ao final do disco
+int smallest;           //Guarda a requisição com posição de leitura mais ao incício do disco
 
+int endDisk = 0;        //Flag para vericar se já chegou ao final do disco, ou à última requisição mais próxima do final do disco
+
+/* Função que calcula a movimentação da cabeça de leitura do disco */
 void hasMoved(int prev, int next)
 {
-    
-    int diff = abs(prev - next);
+    int diff = abs(prev - next); 
     head_moved += diff;
 }
 
+/* Função que define o modelo de escalonamento First Come First Served - 
+Primeiro a Chegar Primeiro a ser Atendido - em que a primeira requisição 
+da fila será atendida independedente da posição em quem se encontre a 
+cabeça de leitura do disco. Retorna o ponteiro que aponta para a primeira 
+requisição da fila de requisição.*/
 request_t *fcfs()
 {
     return requests;
 }
 
+/* Funçao que define o modelo de escalonamento Shortest Seek Time First - 
+Menor Tempo de Busca Primeiro - em que a requisição atendida será aquela
+que estiver mais próxia da caceça de leitura do disco, busca reduzir os
+movimentos da cabeça de leitura. */
 request_t *sstf()
 {
 
@@ -55,19 +86,23 @@ request_t *sstf()
     do
     {
 
-        int diff = abs(current->block - head);
-        if (smaller_diff == -1 || diff < smaller_diff)
-        {
-            smaller_diff = diff;
+        int diff = abs(current->block - head);          //calcula a diferença absoluta(módulo) entre a posição de leitura atual(head)
+        if (smaller_diff == -1 || diff < smaller_diff)  //e a posição a ser lida. Percorre a fila de requisições 
+        {                                               //e define qual é a requisição com menor distância a ser atendida
+            smaller_diff = diff;                        
             chosen = current;
         }
-        current = current->next;
+        current = current->next;            //percorre a fila de requisições
 
     } while (current != first);
 
-    return chosen;
+    return chosen;                          //retorna a requisição escolhida
 }
 
+/* Funçao que define o modelo de escalonamento circular Scan em que a cabeça
+de leitura percorre o disco em um único sentido, ao chegar na última requisição
+mais ao final do disco, a cabeça de leitura retorna para atender a requisição
+que estiver mais ao início do disco.   */
 request_t *cscan()
 {
 
@@ -78,31 +113,36 @@ request_t *cscan()
 
     do
     {
-        int diff = current->block - head;
-        if (diff > 0 && (smaller_diff == -1 || diff < smaller_diff))
-        {
-            smaller_diff = diff;
+        int diff = current->block - head;                               //calcula a diferença entre a posição de leitura atual(head)
+        if (diff > 0 && (smaller_diff == -1 || diff < smaller_diff))    //e a posição a ser lida, considerando apenas distâncias positivas,
+        {                                                               //apenas em uma direção. Percorre a fila de requisições
+            smaller_diff = diff;                                        //e define qual é a requisição com menor distância a ser atendida
             chosen = current;
         }
         current = current->next;
 
     } while (current != first);
-
+    
+    endDisk = 0;
+    
     if (chosen->block >= biggest)
     {
         head = smallest;
+        endDisk = 1;
     }
 
     return chosen;
 }
 
-// Escolher próximas requisição a ser atendida
+/* Escalonador escolhe a próxima requisição a ser atendida, dependendo do tipo
+de escalonamendo definido na variável global algorithm. Pode escolher entre 
+First Come First Served, Shortest Seek Time First e Circular Scan */
 request_t *diskScheduler()
 {
 
     request_t *chosen;
 
-    switch (algorithm)
+    switch (algorithm)          //Decide qual algoritmo será utilizado de acordo com a variável globar algorithm
     {
     case FCFS:
         chosen = fcfs();
@@ -116,32 +156,35 @@ request_t *diskScheduler()
     }
 
 
-    hasMoved(head, chosen->block);
-    head = chosen->block;
+    hasMoved(head, chosen->block);          //atualiza em 'head_moved', através da função hasMoved, a movimentação da cabeça de leitura
+    if(!endDisk)head = chosen->block;       //atualiza a posição da cabeça de leitura para a posição do bloco da requisição escolhida
+                                            //quando 'endDisk == 1' a cabeça é atualizada para a mais próxima do início do disco,
+                                            //dentro da função CSCAN.
     return chosen;
 }
 
+/* Tratador de interrupções */
 void handler_disk()
 {
     has_interrupt = 1;
 }
 
+/* Corpo do disco */
 void diskDriverBody(void *args)
 {
     while (TRUE)
     {
-
         sem_down(&disk_sem);
 
         // O disk scheduler vai escolher uma requisição para atende-la
         //  = next
 
+        /* Se há interrupção resume a tarefa da fila de tarefas */
         if (has_interrupt)
         {
             has_interrupt = 0;
-            // task_resume(processing);
             task_resume(disk_tasks);
-            diskFree = 1;
+            diskFree = 1;   //Libera o disco
         }
 
         // ----------------------------------------------
@@ -150,7 +193,6 @@ void diskDriverBody(void *args)
         if (diskFree && queue_size((queue_t *)requests) > 0)
         {
             request_t *next = diskScheduler();
-            processing = next->task;
             // pega a primeira da fila de requisicoes (ver se está certo)
             next = (request_t *)queue_remove((queue_t **)&requests, (queue_t *)next);
             if (next->type == READ)
@@ -168,10 +210,11 @@ void diskDriverBody(void *args)
         sem_up(&disk_sem);
         // volta para o dispatcher (ver se está certo)
         task_yield();
-        // task_switch(&taskDisp);
     }
+    printf("A CABEÇA DO DISCO MOVEU %d BLOCOS", head_moved); //não está chegando aqui porque o loop nunca termina
 }
 
+/* Inicializa o gerenciador de disco */
 int disk_mgr_init(int *numBlocks, int *blockSize)
 {
 
@@ -180,7 +223,7 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
     {
         return -1;
     }
-
+    //inicializa o disco
     if (disk_cmd(DISK_CMD_INIT, 0, 0) < 0)
     {
         return -1;
@@ -190,6 +233,7 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
     *numBlocks = disk_cmd(DISK_CMD_DISKSIZE, 0, 0);
     *blockSize = disk_cmd(DISK_CMD_BLOCKSIZE, 0, 0);
 
+    //verifica erros com o número de blocos e tamanho de cada bloco
     if (*numBlocks < 0 || *blockSize < 0)
     {
         return -1;
@@ -202,6 +246,7 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
         return -1;
     };
 
+    // Define sinais de tratamento de interrção
     diskSign.sa_handler = handler_disk;
     diskSign.sa_flags = 0;
     if (sigaction(SIGUSR1, &diskSign, 0) < 0)
@@ -210,18 +255,19 @@ int disk_mgr_init(int *numBlocks, int *blockSize)
         exit(1);
     }
 
+    //inicializa variáveis
     has_interrupt = 0;
     diskFree = 1;
     requests = NULL;
     disk_tasks = NULL;
     head = 0;
     head_moved = 0;
-    processing = NULL;
     biggest = -1;
     smallest = -1;
     return 0;
 }
 
+/* Encapsula funções bloqueantes de requisições de leitura e escrita */
 int process_request(unsigned char type, int block, void *buffer)
 {
 
@@ -260,7 +306,6 @@ int process_request(unsigned char type, int block, void *buffer)
     // suspende a tarefa corrente (retorna ao dispatcher)
     task_suspend(taskExec, &disk_tasks);
     task_yield();
-    // task_switch(&taskMain);
     return 0;
 }
 
@@ -280,6 +325,12 @@ int disk_block_write(int block, void *buffer)
     process_request(WRITE, block, buffer);
 
     return 0;
+}
+
+/* Retorna a quantidade de blocos de movimentação da cabeça de leitura do disco.
+Utilizada para testes nas funções main */
+int get_head(){
+  return head_moved;
 }
 
 /* int before_barrier_create(barrier_t *b, int N) {}

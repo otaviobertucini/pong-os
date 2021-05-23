@@ -29,4 +29,7 @@ int disk_block_read (int block, void *buffer) ;
 // escrita de um bloco, do buffer para o disco
 int disk_block_write (int block, void *buffer) ;
 
+/* Retorna a quantidade de blocos de movimentação da cabeça de leitura do disco */
+int get_head();
+
 #endif

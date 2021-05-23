@@ -25,4 +25,4 @@ disk.o: disk.c
 	gcc -c -Wall disk.c -lrt
 
 clean:
-	rm -f ppos-core-task-aux.o ppos-core-scheduler.o pingpong-disco1.o disk.o ppos_disk.o driver
+	rm -f ppos-core-task-aux.o ppos-core-scheduler.o pingpong-disco1.o pingpong-disco2.o disk.o ppos_disk.o driver driver2

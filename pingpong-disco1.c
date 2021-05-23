@@ -79,7 +79,9 @@ int main (int argc, char *argv[])
 
   // encerra a thread main
   printf ("%5d ms: main fim\n", systime()) ;
+  printf("A CABEÇA DO DISCO MOVEU %d BLOCOS", get_head());
   task_exit (0) ;
+  
 
   exit(0) ;
 }
